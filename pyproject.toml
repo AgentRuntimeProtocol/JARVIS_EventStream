@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arp-jarvis-eventstream"
+version = "0.3.1"
+description = "JARVIS Event Stream internal service for RunEvent storage and NDJSON streaming."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Agent Runtime Protocol" }]
+dependencies = [
+  "fastapi>=0.110.0",
+  "pydantic>=2.6.0",
+  "arp-standard-server==0.3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pyright>=1.1.0",
+  "pytest>=7",
+  "pytest-cov>=4",
+  "httpx>=0.23.0",
+]
+run = ["uvicorn>=0.29.0"]
+
+[project.scripts]
+arp-jarvis-eventstream = "jarvis_event_stream.__main__:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
