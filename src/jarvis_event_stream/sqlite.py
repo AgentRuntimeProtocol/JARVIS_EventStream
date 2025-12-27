@@ -5,7 +5,7 @@ import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, cast
 
 from .config import EventStreamConfig
 from .errors import ConflictError, ValidationError
@@ -29,12 +29,12 @@ class SqliteEventStore:
         if not events:
             raise ValidationError("No events provided.")
 
-        run_ids = []
+        run_ids: list[str] = []
         for event in events:
-            run_id = event.get("run_id")
-            if not isinstance(run_id, str) or not run_id:
+            run_id_raw = event.get("run_id")
+            if not isinstance(run_id_raw, str) or not run_id_raw:
                 raise ValidationError("Event missing run_id.")
-            run_ids.append(run_id)
+            run_ids.append(run_id_raw)
 
         pointers: list[EventPointer] = []
         next_seq_by_run: dict[str, int] = {}
@@ -44,7 +44,7 @@ class SqliteEventStore:
             next_seq_by_run = {run_id: max_seq_by_run.get(run_id, 0) + 1 for run_id in set(run_ids)}
 
             for event in events:
-                run_id = event["run_id"]
+                run_id = cast(str, event["run_id"])
                 seq = event.get("seq")
                 if seq is None:
                     seq = next_seq_by_run[run_id]
