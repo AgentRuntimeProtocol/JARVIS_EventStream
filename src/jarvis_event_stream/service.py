@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import json
 from typing import Annotated, Any, AsyncIterator
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from arp_standard_model import Health, Status, VersionInfo
 from arp_standard_server import AuthSettings
 from arp_standard_server.auth import register_auth_middleware
 
@@ -15,17 +17,6 @@ from .config import EventStreamConfig, event_stream_config_from_env
 from .errors import ConflictError, ValidationError
 from .sqlite import EventPointer, SqliteEventStore
 from .utils import auth_settings_from_env_or_dev_secure, decode_cursor, encode_cursor, now
-
-
-class Health(BaseModel):
-    status: str
-    time: str
-
-
-class VersionInfo(BaseModel):
-    service_name: str
-    service_version: str
-    supported_api_versions: list[str]
 
 
 class AppendEventsRequest(BaseModel):
@@ -54,7 +45,7 @@ def create_app(
 
     @app.get("/v1/health", response_model=Health)
     async def health() -> Health:
-        return Health(status="ok", time=now())
+        return Health(status=Status.ok, time=datetime.now(timezone.utc))
 
     @app.get("/v1/version", response_model=VersionInfo)
     async def version() -> VersionInfo:

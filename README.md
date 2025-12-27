@@ -16,7 +16,7 @@ python3 -m pip install -e .
 ## Run
 
 ```bash
-python3 -m pip install -e '.[run]'
+python3 -m pip install -e .
 arp-jarvis-eventstream
 ```
 

@@ -14,7 +14,9 @@ authors = [{ name = "Agent Runtime Protocol" }]
 dependencies = [
   "fastapi>=0.110.0",
   "pydantic>=2.6.0",
+  "arp-standard-model==0.3.1",
   "arp-standard-server==0.3.1",
+  "uvicorn>=0.29.0",
 ]
 
 [project.optional-dependencies]
@@ -24,7 +26,6 @@ dev = [
   "pytest-cov>=4",
   "httpx>=0.23.0",
 ]
-run = ["uvicorn>=0.29.0"]
 
 [project.scripts]
 arp-jarvis-eventstream = "jarvis_event_stream.__main__:main"
