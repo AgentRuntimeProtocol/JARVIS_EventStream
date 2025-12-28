@@ -45,8 +45,7 @@ class SqliteEventStore:
 
             for event in events:
                 run_id = cast(str, event["run_id"])
-                seq = event.get("seq")
-                if seq is None:
+                if (seq := event.get("seq")) is None:
                     seq = next_seq_by_run[run_id]
                     next_seq_by_run[run_id] = seq + 1
                     event["seq"] = seq
