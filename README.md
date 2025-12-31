@@ -34,7 +34,7 @@ Auth is enabled by default (JWT). To disable for local dev, set `ARP_AUTH_PROFIL
 or `ARP_AUTH_MODE=disabled`. Health/version endpoints are always exempt.
 If no `ARP_AUTH_*` env vars are set, the service defaults to the dev Keycloak issuer.
 
-## API (v0.3.1)
+## API (v0.3.3)
 
 Health/version:
 - `GET /v1/health`
