@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from typing import Annotated, Any, AsyncIterator
 from datetime import datetime, timezone
 
@@ -17,6 +18,8 @@ from .config import EventStreamConfig, event_stream_config_from_env
 from .errors import ConflictError, ValidationError
 from .sqlite import EventPointer, SqliteEventStore
 from .utils import auth_settings_from_env_or_dev_secure, decode_cursor, encode_cursor, now
+
+logger = logging.getLogger(__name__)
 
 
 class AppendEventsRequest(BaseModel):
@@ -39,9 +42,16 @@ def create_app(
 ) -> FastAPI:
     cfg = config or event_stream_config_from_env()
     store = SqliteEventStore(cfg)
+    logger.info("Event Stream config (db_path=%s, retention_days=%s)", cfg.db_path, cfg.retention_days)
 
     app = FastAPI(title="JARVIS Event Stream", version=__version__)
-    register_auth_middleware(app, settings=auth_settings or auth_settings_from_env_or_dev_secure())
+    auth_settings = auth_settings or auth_settings_from_env_or_dev_secure()
+    logger.info(
+        "Event Stream auth settings (mode=%s, issuer=%s)",
+        getattr(auth_settings, "mode", None),
+        getattr(auth_settings, "issuer", None),
+    )
+    register_auth_middleware(app, settings=auth_settings)
 
     @app.get("/v1/health", response_model=Health)
     async def health() -> Health:
@@ -57,12 +67,29 @@ def create_app(
 
     @app.post("/v1/run-events", response_model=AppendEventsResponse)
     async def append_events(request: AppendEventsRequest) -> AppendEventsResponse:
+        run_ids = {
+            event.get("run_id")
+            for event in request.events
+            if isinstance(event, dict) and event.get("run_id")
+        }
+        logger.info(
+            "Event append requested (events=%s, runs=%s)",
+            len(request.events),
+            len(run_ids),
+        )
         try:
             pointers, next_seq_by_run = store.append_events(request.events)
         except ValidationError as exc:
+            logger.warning("Event append validation failed")
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         except ConflictError as exc:
+            logger.warning("Event append conflict")
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        logger.info(
+            "Event append completed (events=%s, runs=%s)",
+            len(pointers),
+            len(next_seq_by_run),
+        )
         return AppendEventsResponse(
             items=[EventPointerResponse(run_id=pointer.run_id, seq=pointer.seq) for pointer in pointers],
             next_seq_by_run=next_seq_by_run,
@@ -75,6 +102,13 @@ def create_app(
         follow: Annotated[int, Query(ge=0, le=1)] = 0,
         limit: Annotated[int | None, Query(ge=1, le=10000)] = None,
     ) -> StreamingResponse:
+        logger.info(
+            "Run event stream requested (run_id=%s, cursor=%s, follow=%s, limit=%s)",
+            run_id,
+            cursor,
+            bool(follow),
+            limit,
+        )
         try:
             start_seq = decode_cursor(cursor) if cursor else 0
         except ValueError as exc:
@@ -96,6 +130,13 @@ def create_app(
         follow: Annotated[int, Query(ge=0, le=1)] = 0,
         limit: Annotated[int | None, Query(ge=1, le=10000)] = None,
     ) -> StreamingResponse:
+        logger.info(
+            "NodeRun event stream requested (node_run_id=%s, cursor=%s, follow=%s, limit=%s)",
+            node_run_id,
+            cursor,
+            bool(follow),
+            limit,
+        )
         try:
             start_seq = decode_cursor(cursor) if cursor else 0
         except ValueError as exc:
